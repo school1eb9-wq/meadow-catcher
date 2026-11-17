@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meadow Catcher - Butterfly Arcade Game</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+            overflow: hidden;
+            background: linear-gradient(135deg, #87ceeb 0%, #e0f2fe 50%, #d1fae5 100%);
+        }
+        h1, h2, h3, .font-fun {
+            font-family: 'Fredoka', cursive;
+        }
+        /* Realistic Butterfly Flapping Animation with 3D wing pivot */
+        @keyframes wingFlapL {
+            0%, 100% { transform: rotateY(0deg) skewY(0deg); }
+            50% { transform: rotateY(75deg) skewY(5deg); }
+        }
+        @keyframes wingFlapR {
+            0%, 100% { transform: rotateY(0deg) skewY(0deg); }
+            50% { transform: rotateY(-75deg) skewY(-5deg); }
+        }
+        .wing-left {
+            animation: wingFlapL 0.22s infinite ease-in-out alternate;
+            transform-origin: right center;
+        }
+        .wing-right {
+            animation: wingFlapR 0.22s infinite ease-in-out alternate;
+            transform-origin: left center;
+        }
+        /* Trickster Shadow Moth / Spider Flapping */
+        @keyframes shadowFlapL {
+            0%, 100% { transform: rotateY(0deg) scale(0.95); }
+            50% { transform: rotateY(60deg) scale(1.05); }
+        }
+        @keyframes shadowFlapR {
+            0%, 100% { transform: rotateY(0deg) scale(0.95); }
+            50% { transform: rotateY(-60deg) scale(1.05); }
+        }
+        .shadow-wing-l {
+            animation: shadowFlapL 0.3s infinite ease-in-out alternate;
+            transform-origin: right center;
+        }
+        .shadow-wing-r {
+            animation: shadowFlapR 0.3s infinite ease-in-out alternate;
+            transform-origin: left center;
+        }
+        /* Floating clouds animation */
+        @keyframes floatCloud {
+            0% { transform: translateX(-150px); }
+            100% { transform: translateX(calc(100vw + 150px)); }
+        }
+        .cloud-1 { animation: floatCloud 45s linear infinite; }
+        .cloud-2 { animation: floatCloud 65s linear infinite; animation-delay: -20s; }
+        .cloud-3 { animation: floatCloud 35s linear infinite; animation-delay: -10s; }
+
+        /* Twinkling sparkle animation */
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 0.9; transform: scale(1.2); }
+        }
+        .sparkle {
+            animation: twinkle 2.5s infinite ease-in-out;
+        }
+        /* Floating score popup */
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.3); }
+        }
+        .float-score {
+            animation: floatUp 0.8s ease-out forwards;
+        }
+        /* Checkpoint notification banner */
+        @keyframes slideDown {
+            0% { transform: translateY(-100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .slide-banner {
+            animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes modalPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .modal-pop {
+            animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen flex flex-col justify-between items-center m-0 p-0 overflow-hidden">
+
+    <!-- Gorgeous Meadow Background Layer -->
+    <div class="absolute inset-0 z-0 bg-gradient-to-b from-sky-200 via-sky-100 to-emerald-200 overflow-hidden pointer-events-none">
+        <!-- Floating Clouds -->
+        <div class="absolute top-12 left-0 w-36 h-12 bg-white/70 rounded-full blur-md cloud-1"></div>
+        <div class="absolute top-24 left-0 w-48 h-16 bg-white/60 rounded-full blur-md cloud-2"></div>
+        <div class="absolute top-6 left-0 w-28 h-10 bg-white/80 rounded-full blur-md cloud-3"></div>
+
+        <!-- Sparkles / Magical Light Motes -->
+        <div class="absolute top-20 left-1/4 w-2 h-2 bg-yellow-200 rounded-full shadow-[0_0_10px_2px_#fef08a] sparkle" style="animation-delay: 0s;"></div>
+        <div class="absolute top-32 left-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_12px_3px_#ffffff] sparkle" style="animation-delay: 0.8s;"></div>
+        <div class="absolute top-16 left-3/4 w-2 h-2 bg-pink-200 rounded-full shadow-[0_0_10px_2px_#fbcfe8] sparkle" style="animation-delay: 1.5s;"></div>
+        <div class="absolute top-44 left-1/5 w-2.5 h-2.5 bg-yellow-100 rounded-full shadow-[0_0_10px_2px_#fef9c3] sparkle" style="animation-delay: 2.1s;"></div>
+        <div class="absolute top-28 left-4/5 w-2 h-2 bg-purple-200 rounded-full shadow-[0_0_10px_2px_#e9d5ff] sparkle" style="animation-delay: 1.2s;"></div>
+
+        <!-- Rolling Hills & Grass Backdrop -->
+        <div class="absolute bottom-0 w-full h-56 bg-gradient-to-t from-emerald-400 to-emerald-300 rounded-t-[120%] scale-125 translate-y-16"></div>
+        <div class="absolute bottom-0 w-full h-40 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-[100%] scale-110 translate-y-10"></div>
+        <div class="absolute bottom-0 w-full h-24 bg-emerald-600 rounded-t-[90%] translate-y-6"></div>
+
+        <!-- Scattered Blooming Wildflowers along bottom -->
+        <div class="absolute bottom-4 w-full flex justify-around px-8 opacity-90">
+            <span class="text-pink-400 text-xl filter drop-shadow">🌷</span>
+            <span class="text-yellow-300 text-lg filter drop-shadow">🌼</span>
+            <span class="text-purple-400 text-xl filter drop-shadow">🌸</span>
+            <span class="text-blue-400 text-lg filter drop-shadow">💠</span>
+            <span class="text-pink-500 text-2xl filter drop-shadow">🌺</span>
+            <span class="text-yellow-400 text-xl filter drop-shadow">🌻</span>
+            <span class="text-purple-300 text-lg filter drop-shadow">🌷</span>
+            <span class="text-rose-400 text-2xl filter drop-shadow">🌸</span>
+            <span class="text-amber-300 text-lg filter drop-shadow">🌼</span>
+            <span class="text-indigo-400 text-xl filter drop-shadow">💠</span>
+        </div>
+    </div>
+
+    <!-- Game Container / Canvas Area -->
+    <div id="game-container" class="absolute inset-0 z-10 cursor-crosshair overflow-hidden">
+        <!-- Butterflies, trap shadow-moths and particles spawn here dynamically -->
+    </div>
+
+    <!-- Checkpoint Notification Banner -->
+    <div id="checkpoint-banner" class="hidden absolute top-20 z-40 bg-amber-400/95 text-amber-950 font-fun px-6 py-3 rounded-2xl shadow-xl border-2 border-amber-200 text-lg slide-banner flex items-center space-x-3">
+        <i class="fa-solid fa-flag-checkered text-2xl animate-bounce"></i>
+        <div>
+            <span id="checkpoint-title" class="block font-bold">Checkpoint Reached!</span>
+            <span id="checkpoint-desc" class="text-xs font-normal">Progress saved. Bonus rewards unlocked!</span>
+        </div>
+    </div>
+
+    <!-- UI Header (Score, Checkpoints & Stats) -->
+    <header class="relative z-20 w-full max-w-5xl mt-4 px-4 flex justify-between items-center pointer-events-none">
+        <!-- Score and Combo -->
+        <div class="bg-white/85 backdrop-blur-md px-5 py-2.5 rounded-2xl shadow-lg border border-white/60 flex items-center space-x-4 pointer-events-auto">
+            <div>
+                <span class="text-xs text-emerald-700 font-bold uppercase tracking-wider block">Score</span>
+                <span id="score-val" class="text-3xl font-fun text-emerald-800">0</span>
+            </div>
+            <div class="h-8 w-px bg-emerald-200"></div>
+            <div>
+                <span class="text-xs text-amber-700 font-bold uppercase tracking-wider block">Combo</span>
+                <span id="combo-val" class="text-xl font-fun text-amber-600">1.0x</span>
+            </div>
+        </div>
+
+        <!-- Progress to Next Upgrade & Checkpoint -->
+        <div class="bg-white/85 backdrop-blur-md px-5 py-2.5 rounded-2xl shadow-lg border border-white/60 flex flex-col items-center pointer-events-auto min-w-[200px]">
+            <div class="w-full flex justify-between items-center mb-1">
+                <span id="progress-label" class="text-xs text-purple-700 font-bold uppercase">Next Upgrade</span>
+                <span id="upgrade-counter-text" class="text-xs font-bold text-purple-900">0 / 10</span>
+            </div>
+            <div class="w-full bg-purple-100 h-2.5 rounded-full overflow-hidden">
+                <div id="upgrade-bar" class="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div class="w-full flex justify-between items-center mt-1 text-[10px] text-slate-500 font-semibold">
+                <span>Checkpoint: <span id="checkpoint-count">Milestone 0</span></span>
+                <span id="net-size-indicator">Net: Normal</span>
+            </div>
+        </div>
+
+        <!-- Lives & High Score -->
+        <div class="bg-white/85 backdrop-blur-md px-5 py-2.5 rounded-2xl shadow-lg border border-white/60 flex items-center space-x-4 pointer-events-auto">
+            <div>
+                <span class="text-xs text-rose-700 font-bold uppercase tracking-wider block">Lives</span>
+                <div id="lives-container" class="flex space-x-1 text-rose-500 text-lg mt-0.5">
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+            </div>
+            <div class="h-8 w-px bg-rose-200"></div>
+            <div>
+                <span class="text-xs text-slate-500 font-bold uppercase tracking-wider block">Best</span>
+                <span id="highscore-val" class="text-xl font-fun text-slate-700">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Bottom Decorative Grass & Footer -->
+    <footer class="relative z-20 w-full flex justify-between items-end px-6 pb-2 pointer-events-none opacity-90">
+        <div class="text-xs text-emerald-900 font-semibold bg-white/50 px-3 py-1 rounded-full backdrop-blur-sm pointer-events-auto shadow-sm">
+            <i class="fa-solid fa-feather text-emerald-600 mr-1"></i> Catch pretty butterflies! Avoid smoky dark shadow-moths!
+        </div>
+        <div class="text-xs text-emerald-900 font-semibold bg-white/50 px-3 py-1 rounded-full backdrop-blur-sm pointer-events-auto shadow-sm flex items-center space-x-2">
+            <button onclick="toggleAudio()" id="sound-btn" class="hover:text-emerald-700 transition"><i class="fa-solid fa-volume-high"></i> Sound On</button>
+            <span>•</span>
+            <span>Press <kbd class="bg-white px-1.5 py-0.5 rounded shadow text-emerald-800">Space</kbd> to Pause</span>
+        </div>
+    </footer>
+
+    <!-- START SCREEN MODAL -->
+    <div id="start-screen" class="absolute inset-0 z-50 bg-emerald-950/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-2xl border-4 border-emerald-300 max-w-md w-full text-center modal-pop">
+            <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600 text-3xl shadow-inner">
+                <i class="fa-solid fa-seedling"></i>
+            </div>
+            <h1 class="text-4xl font-fun text-emerald-800 mb-2">Meadow Catcher</h1>
+            <p class="text-slate-600 text-sm mb-6">Explore the sparkling meadow, catch stunning realistic butterflies, avoid tempting smoky shadow-moths, and earn small incremental upgrades every 10 catches!</p>
+            
+            <div class="space-y-2.5 mb-6 text-left bg-emerald-50 p-4 rounded-2xl border border-emerald-200 text-xs text-emerald-900">
+                <div class="flex items-center"><i class="fa-solid fa-circle-check text-emerald-600 mr-2"></i> <strong>Realistic Butterflies:</strong> Gorgeous multi-colored wings & points.</div>
+                <div class="flex items-center"><i class="fa-solid fa-triangle-exclamation text-amber-600 mr-2"></i> <strong>Shadow Moths & Trickster Bugs:</strong> Smokey dark wings (no bounding boxes!) that deduct points.</div>
+                <div class="flex items-center"><i class="fa-solid fa-flag-checkered text-emerald-600 mr-2"></i> <strong>Checkpoints:</strong> Every 30 catches saves milestone perks & grants health.</div>
+            </div>
+
+            <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-fun text-xl rounded-2xl shadow-lg shadow-emerald-500/30 transform transition active:scale-95 flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-play"></i>
+                <span>Enter Meadow</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- UPGRADE CHOICE MODAL -->
+    <div id="upgrade-modal" class="hidden absolute inset-0 z-50 bg-emerald-950/50 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-2xl border-4 border-purple-300 max-w-xl w-full text-center modal-pop">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl text-2xl mb-3 shadow-inner">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <h2 class="text-3xl font-fun text-purple-900 mb-1">Meadow Blessing!</h2>
+            <p class="text-slate-600 text-sm mb-6">Choose one small incremental upgrade to enhance your net and catching abilities:</p>
+
+            <div id="upgrade-choices" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <!-- Dynamically injected upgrade buttons -->
+            </div>
+        </div>
+    </div>
+
+    <!-- PAUSE MODAL -->
+    <div id="pause-modal" class="hidden absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-2xl border-4 border-slate-200 max-w-sm w-full text-center modal-pop">
+            <h2 class="text-3xl font-fun text-slate-800 mb-2">Game Paused</h2>
+            <p class="text-slate-600 text-sm mb-6">Take a breather, the meadow awaits.</p>
+            <button onclick="togglePause()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-fun text-lg rounded-xl shadow-lg mb-3">
+                Resume Game
+            </button>
+            <button onclick="location.reload()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm">
+                Quit to Menu
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER MODAL -->
+    <div id="gameover-modal" class="hidden absolute inset-0 z-50 bg-rose-950/50 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-2xl border-4 border-rose-300 max-w-md w-full text-center modal-pop">
+            <div class="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500 text-3xl shadow-inner">
+                <i class="fa-solid fa-heart-crack"></i>
+            </div>
+            <h2 class="text-4xl font-fun text-rose-800 mb-1">Meadow Quiet</h2>
+            <p class="text-slate-600 text-sm mb-6">All your lives were lost. Would you like to restart from your latest checkpoint or start fresh?</p>
+
+            <div class="bg-rose-50 p-4 rounded-2xl border border-rose-200 mb-6 flex justify-around items-center">
+                <div>
+                    <span class="text-xs text-rose-700 font-bold uppercase block">Final Score</span>
+                    <span id="final-score" class="text-3xl font-fun text-rose-900">0</span>
+                </div>
+                <div class="h-8 w-px bg-rose-200"></div>
+                <div>
+                    <span class="text-xs text-rose-700 font-bold uppercase block">Total Caught</span>
+                    <span id="final-caught" class="text-3xl font-fun text-rose-900">0</span>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <button id="resume-checkpoint-btn" onclick="respawnAtCheckpoint()" class="hidden w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-fun text-lg rounded-2xl shadow-lg flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-flag-checkered"></i>
+                    <span>Restart at Checkpoint</span>
+                </button>
+                <button onclick="location.reload()" class="w-full py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-fun text-lg rounded-2xl shadow-lg flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Play From Beginning</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Game Logic -->
+    <script>
+        // Game State Variables
+        let gameState = 'START';
+        let score = 0;
+        let highscore = localStorage.getItem('meadow_highscore') || 0;
+        let lives = 3;
+        let totalCaught = 0;
+        let upgradeCounter = 0;
+        let comboMultiplier = 1.0;
+        let soundEnabled = true;
+
+        // Checkpoint Data
+        let checkpointData = {
+            active: false,
+            score: 0,
+            totalCaught: 0,
+            lives: 3,
+            stats: null,
+            checkpointIndex: 0
+        };
+        
+        // Player Upgrades Stats
+        let stats = {
+            spawnRateInterval: 950,
+            catchRadiusBonus: 0,     
+            scoreMultiplier: 1.0,
+            butterflySpeedMod: 1.0,
+            extraLifeChance: 0,
+            netSizeLevel: 1          
+        };
+
+        // Active Entities and Particles
+        let entities = [];
+        let spawnTimer = null;
+        let audioCtx = null;
+
+        // Diverse Butterfly & Fake Shadow Moth Types
+        const entityTypes = [
+            // Real Butterflies (Stunning multi-colored winged sprites)
+            { 
+                id: 'blue', name: 'Blue Morpho', type: 'butterfly', 
+                colors: { left: 'from-blue-400 via-indigo-500 to-blue-700', right: 'from-blue-600 via-indigo-500 to-blue-400', center: 'bg-cyan-200' }, 
+                points: 10, speed: 1.2, size: 52, pattern: 'straight', rarity: 26 
+            },
+            { 
+                id: 'sun', name: 'Sun Swallowtail', type: 'butterfly', 
+                colors: { left: 'from-amber-300 via-yellow-400 to-orange-500', right: 'from-orange-500 via-yellow-400 to-amber-300', center: 'bg-amber-100' }, 
+                points: 15, speed: 1.5, size: 48, pattern: 'darting', rarity: 24 
+            },
+            { 
+                id: 'ruby', name: 'Ruby Admiral', type: 'butterfly', 
+                colors: { left: 'from-rose-400 via-red-500 to-pink-600', right: 'from-pink-600 via-red-500 to-rose-400', center: 'bg-rose-200' }, 
+                points: 20, speed: 1.7, size: 44, pattern: 'circling', rarity: 18 
+            },
+            { 
+                id: 'emerald', name: 'Emerald Sprite', type: 'butterfly', 
+                colors: { left: 'from-emerald-400 via-teal-500 to-green-600', right: 'from-green-600 via-teal-500 to-emerald-400', center: 'bg-emerald-200' }, 
+                points: 30, speed: 2.0, size: 40, pattern: 'circling', rarity: 12 
+            },
+            { 
+                id: 'golden', name: 'Golden Monarch', type: 'butterfly', 
+                colors: { left: 'from-yellow-200 via-amber-400 to-yellow-600', right: 'from-yellow-600 via-amber-400 to-yellow-200', center: 'bg-yellow-100' }, 
+                points: 50, speed: 2.4, size: 50, pattern: 'darting', rarity: 8 
+            },
+            
+            // Fake Bugs (Sneaky Shadow Moths / Mimic Spiders with no bounding circle outline, gorgeous smoky wings)
+            { 
+                id: 'shadow_moth', name: 'Shadow Dusk Moth', type: 'fake', 
+                colors: { left: 'from-slate-600 via-zinc-700 to-neutral-900', right: 'from-neutral-900 via-zinc-700 to-slate-600', center: 'bg-purple-900' }, 
+                points: -15, speed: 1.5, size: 46, pattern: 'straight', rarity: 8 
+            },
+            { 
+                id: 'phantom_bug', name: 'Phantom Trickster', type: 'fake', 
+                colors: { left: 'from-violet-900 via-slate-800 to-zinc-900', right: 'from-zinc-900 via-slate-800 to-violet-900', center: 'bg-rose-900' }, 
+                points: -25, speed: 1.9, size: 42, pattern: 'darting', rarity: 4 
+            }
+        ];
+
+        document.getElementById('highscore-val').innerText = highscore;
+
+        // Web Audio API Sound Synthesizer
+        function initAudio() {
+            if(!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if(!soundEnabled) return;
+            try {
+                initAudio();
+                if(!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if(type === 'catch') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(450, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if(type === 'fake') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.linearRampToValueAtTime(90, now + 0.3);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if(type === 'upgrade') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(320, now);
+                    osc.frequency.exponentialRampToValueAtTime(950, now + 0.4);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if(type === 'checkpoint') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); 
+                    osc.frequency.setValueAtTime(659.25, now + 0.1); 
+                    osc.frequency.setValueAtTime(783.99, now + 0.2); 
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                }
+            } catch(e) {}
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('sound-btn');
+            btn.innerHTML = soundEnabled ? '<i class="fa-solid fa-volume-high"></i> Sound On' : '<i class="fa-solid fa-volume-xmark"></i> Sound Off';
+        }
+
+        // Start Game Function
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            gameState = 'PLAYING';
+            resetGameStats();
+            startSpawner();
+            requestAnimationFrame(mainLoop);
+        }
+
+        function resetGameStats() {
+            score = 0;
+            lives = 3;
+            totalCaught = 0;
+            upgradeCounter = 0;
+            comboMultiplier = 1.0;
+            entities = [];
+            checkpointData.active = false;
+            stats = {
+                spawnRateInterval: 900,
+                catchRadiusBonus: 0,
+                scoreMultiplier: 1.0,
+                butterflySpeedMod: 1.0,
+                extraLifeChance: 0,
+                netSizeLevel: 1
+            };
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('score-val').innerText = score;
+            document.getElementById('combo-val').innerText = comboMultiplier.toFixed(1) + 'x';
+            
+            let mod10 = upgradeCounter % 10;
+            document.getElementById('upgrade-counter-text').innerText = `${mod10} / 10`;
+            document.getElementById('upgrade-bar').style.width = `${(mod10 / 10) * 100}%`;
+            
+            let checkpointMilestone = Math.floor(totalCaught / 30);
+            document.getElementById('checkpoint-count').innerText = `Milestone ${checkpointMilestone}`;
+            
+            let netNames = ['', 'Normal', 'Large (Radius+)', 'Giant (Mega)'];
+            document.getElementById('net-size-indicator').innerText = `Net: ${netNames[stats.netSizeLevel] || 'Mega'}`;
+
+            const livesContainer = document.getElementById('lives-container');
+            let heartsHTML = '';
+            for(let i=0; i<5; i++) {
+                if(i < lives) {
+                    heartsHTML += '<i class="fa-solid fa-heart text-rose-500"></i>';
+                } else if(i < 3) {
+                    heartsHTML += '<i class="fa-solid fa-heart text-slate-300"></i>';
+                }
+            }
+            livesContainer.innerHTML = heartsHTML;
+        }
+
+        function startSpawner() {
+            if(spawnTimer) clearInterval(spawnTimer);
+            spawnTimer = setInterval(() => {
+                if(gameState === 'PLAYING') {
+                    spawnEntity();
+                    if(Math.random() < 0.45) {
+                        setTimeout(() => spawnEntity(), 220);
+                    }
+                }
+            }, stats.spawnRateInterval);
+        }
+
+        function spawnEntity() {
+            if(entities.length >= 15) return;
+
+            const container = document.getElementById('game-container');
+            const maxX = window.innerWidth - 90;
+            const maxY = window.innerHeight - 150;
+            const startX = Math.random() * maxX + 45;
+            const startY = maxY + 60;
+
+            let totalRarity = entityTypes.reduce((sum, t) => sum + t.rarity, 0);
+            let rand = Math.random() * totalRarity;
+            let currentSum = 0;
+            let selectedType = entityTypes[0];
+
+            for(let t of entityTypes) {
+                currentSum += t.rarity;
+                if(rand <= currentSum) {
+                    selectedType = t;
+                    break;
+                }
+            }
+
+            const entity = {
+                id: Math.random().toString(36).substring(2),
+                x: startX,
+                y: startY,
+                vx: (Math.random() - 0.5) * 2 * selectedType.speed * stats.butterflySpeedMod,
+                vy: (-Math.random() * 1.8 - 1.2) * selectedType.speed * stats.butterflySpeedMod,
+                wobbleSpeed: Math.random() * 0.08 + 0.03,
+                wobbleDist: Math.random() * 55 + 25,
+                baseX: startX,
+                age: 0,
+                maxAge: 550,
+                typeObj: selectedType,
+                element: null
+            };
+
+            const el = document.createElement('div');
+            el.className = `absolute z-20 cursor-pointer transform -translate-x-1/2 -translate-y-1/2 p-4 transition-transform hover:scale-125`;
+            
+            if(selectedType.type === 'butterfly') {
+                // Highly realistic butterfly sprite with multi-layered wings, wing veins, and antennae
+                el.innerHTML = `
+                    <div class="relative w-14 h-14 flex items-center justify-center">
+                        <!-- Left Wing -->
+                        <div class="absolute left-0 w-7 h-11 bg-gradient-to-br ${selectedType.colors.left} rounded-l-full shadow-lg border-l border-white/80 wing-left overflow-hidden opacity-95">
+                            <div class="absolute inset-1 border border-white/30 rounded-l-full"></div>
+                            <div class="absolute top-2 left-1 w-2.5 h-2.5 bg-white/40 rounded-full blur-[1px]"></div>
+                        </div>
+                        <!-- Right Wing -->
+                        <div class="absolute right-0 w-7 h-11 bg-gradient-to-bl ${selectedType.colors.right} rounded-r-full shadow-lg border-r border-white/80 wing-right overflow-hidden opacity-95">
+                            <div class="absolute inset-1 border border-white/30 rounded-r-full"></div>
+                            <div class="absolute top-2 right-1 w-2.5 h-2.5 bg-white/40 rounded-full blur-[1px]"></div>
+                        </div>
+                        <!-- Body & Antennae -->
+                        <div class="absolute w-2 h-9 ${selectedType.colors.center} rounded-full shadow-md z-10"></div>
+                        <div class="absolute -top-2 -left-1 w-1.5 h-3 border-t border-l border-slate-900 rounded-tl-full z-10"></div>
+                        <div class="absolute -top-2 -right-1 w-1.5 h-3 border-t border-r border-slate-900 rounded-tr-full z-10"></div>
+                    </div>
+                `;
+            } else {
+                // Fake Shadow Moth / Phantom Trickster trap (no circle bounding outlines, gorgeous smoky wing shape)
+                el.innerHTML = `
+                    <div class="relative w-14 h-14 flex items-center justify-center">
+                        <!-- Left Shadow Wing -->
+                        <div class="absolute left-0 w-7 h-11 bg-gradient-to-br ${selectedType.colors.left} rounded-l-full shadow-xl shadow-black/40 border-l border-purple-500/40 shadow-wing-l overflow-hidden">
+                            <div class="absolute inset-1 border border-red-500/20 rounded-l-full"></div>
+                        </div>
+                        <!-- Right Shadow Wing -->
+                        <div class="absolute right-0 w-7 h-11 bg-gradient-to-bl ${selectedType.colors.right} rounded-r-full shadow-xl shadow-black/40 border-r border-purple-500/40 shadow-wing-r overflow-hidden">
+                            <div class="absolute inset-1 border border-red-500/20 rounded-r-full"></div>
+                        </div>
+                        <!-- Glowing Red/Purple Eyes & Body -->
+                        <div class="absolute w-2.5 h-9 ${selectedType.colors.center} rounded-full shadow-md z-10 flex flex-col justify-center items-center">
+                            <div class="flex space-x-1 mb-1">
+                                <div class="w-1 h-1 bg-red-400 rounded-full shadow-[0_0_6px_1px_#ef4444]"></div>
+                                <div class="w-1 h-1 bg-red-400 rounded-full shadow-[0_0_6px_1px_#ef4444]"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            el.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                interactEntity(entity);
+            });
+
+            container.appendChild(el);
+            entity.element = el;
+            entities.push(entity);
+        }
+
+        function interactEntity(entity) {
+            if(gameState !== 'PLAYING') return;
+
+            const index = entities.indexOf(entity);
+            if(index > -1) {
+                entities.splice(index, 1);
+                if(entity.element) entity.element.remove();
+
+                if(entity.typeObj.type === 'butterfly') {
+                    playSound('catch');
+                    const earnedPoints = Math.round(entity.typeObj.points * comboMultiplier * stats.scoreMultiplier);
+                    score += earnedPoints;
+                    totalCaught++;
+                    upgradeCounter++;
+
+                    comboMultiplier = Math.min(4.0, comboMultiplier + 0.05);
+
+                    createFloatingText(entity.x, entity.y, `+${earnedPoints}`, 'text-emerald-600');
+                    createParticles(entity.x, entity.y, 'bg-emerald-400');
+
+                    if(stats.extraLifeChance > 0 && Math.random() < stats.extraLifeChance) {
+                        lives = Math.min(5, lives + 1);
+                        createFloatingText(entity.x, entity.y - 25, '+1 Life! ❤️', 'text-rose-500');
+                    }
+
+                    if(totalCaught > 0 && totalCaught % 30 === 0) {
+                        triggerCheckpoint();
+                    }
+
+                    if(upgradeCounter > 0 && upgradeCounter % 10 === 0) {
+                        triggerUpgradeModal();
+                    }
+                } else {
+                    playSound('fake');
+                    score = Math.max(0, score + entity.typeObj.points);
+                    comboMultiplier = 1.0; 
+
+                    createFloatingText(entity.x, entity.y, `${entity.typeObj.points} ⚠️`, 'text-rose-600');
+                    createParticles(entity.x, entity.y, 'bg-rose-600');
+
+                    lossLife();
+                }
+
+                updateUI();
+            }
+        }
+
+        function createFloatingText(x, y, text, colorClass) {
+            const container = document.getElementById('game-container');
+            const el = document.createElement('div');
+            el.className = `absolute z-30 font-fun font-bold text-xl ${colorClass} float-score pointer-events-none`;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            el.innerText = text;
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        function createParticles(x, y, bgClass) {
+            const container = document.getElementById('game-container');
+            for(let i=0; i<10; i++) {
+                const p = document.createElement('div');
+                p.className = `absolute z-20 w-2.5 h-2.5 rounded-full pointer-events-none ${bgClass} shadow-sm`;
+                p.style.left = `${x}px`;
+                p.style.top = `${y}px`;
+                container.appendChild(p);
+
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6 + 2;
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed;
+
+                let opacity = 1;
+                let px = x;
+                let py = y;
+
+                const anim = setInterval(() => {
+                    px += vx;
+                    py += vy;
+                    opacity -= 0.05;
+                    p.style.left = `${px}px`;
+                    p.style.top = `${py}px`;
+                    p.style.opacity = opacity;
+                    if(opacity <= 0) {
+                        clearInterval(anim);
+                        p.remove();
+                    }
+                }, 20);
+            }
+        }
+
+        function triggerCheckpoint() {
+            playSound('checkpoint');
+            checkpointData = {
+                active: true,
+                score: score,
+                totalCaught: totalCaught,
+                lives: lives,
+                stats: JSON.parse(JSON.stringify(stats)),
+                checkpointIndex: Math.floor(totalCaught / 30)
+            };
+
+            const banner = document.getElementById('checkpoint-banner');
+            document.getElementById('checkpoint-title').innerText = `Checkpoint Milestone ${checkpointData.checkpointIndex}!`;
+            document.getElementById('checkpoint-desc').innerText = `Progress saved at Score ${score}. Bonus health restored!`;
+            banner.classList.remove('hidden');
+
+            lives = Math.min(5, lives + 1);
+
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 3500);
+        }
+
+        function respawnAtCheckpoint() {
+            document.getElementById('gameover-modal').classList.add('hidden');
+            score = checkpointData.score;
+            totalCaught = checkpointData.totalCaught;
+            lives = Math.max(2, checkpointData.lives);
+            stats = JSON.parse(JSON.stringify(checkpointData.stats));
+            gameState = 'PLAYING';
+            entities = [];
+            startSpawner();
+            requestAnimationFrame(mainLoop);
+            updateUI();
+        }
+
+        function triggerUpgradeModal() {
+            playSound('upgrade');
+            gameState = 'UPGRADE';
+            if(spawnTimer) clearInterval(spawnTimer);
+
+            const allUpgrades = [
+                {
+                    id: 'net',
+                    title: 'Wider Net',
+                    desc: 'Expand your catching radius and reach.',
+                    icon: 'fa-bullseye',
+                    color: 'from-purple-500 to-indigo-500',
+                    apply: () => { stats.netSizeLevel = Math.min(3, stats.netSizeLevel + 1); }
+                },
+                {
+                    id: 'spawn',
+                    title: 'Breezy Wind',
+                    desc: 'Increase butterfly spawn frequency by +15%.',
+                    icon: 'fa-wind',
+                    color: 'from-blue-500 to-cyan-500',
+                    apply: () => { stats.spawnRateInterval = Math.max(450, stats.spawnRateInterval * 0.85); }
+                },
+                {
+                    id: 'mult',
+                    title: 'Nectar Glow',
+                    desc: 'Boost Score Multiplier by +0.5x permanently.',
+                    icon: 'fa-star',
+                    color: 'from-amber-500 to-yellow-500',
+                    apply: () => { stats.scoreMultiplier += 0.5; }
+                },
+                {
+                    id: 'speed',
+                    title: 'Gentle Honey',
+                    desc: 'Slow down butterflies by 12% for easier catching.',
+                    icon: 'fa-feather',
+                    color: 'from-emerald-500 to-teal-500',
+                    apply: () => { stats.butterflySpeedMod = Math.max(0.5, stats.butterflySpeedMod * 0.88); }
+                },
+                {
+                    id: 'life',
+                    title: 'Meadow Heart',
+                    desc: 'Instantly restore +1 Life (Max 5).',
+                    icon: 'fa-heart',
+                    color: 'from-rose-500 to-pink-500',
+                    apply: () => { lives = Math.min(5, lives + 1); }
+                },
+                {
+                    id: 'lucky',
+                    title: 'Lucky Pollen',
+                    desc: '10% chance to gain an extra life when catching a butterfly.',
+                    icon: 'fa-clover',
+                    color: 'from-violet-500 to-fuchsia-500',
+                    apply: () => { stats.extraLifeChance += 0.10; }
+                }
+            ];
+
+            let shuffled = [...allUpgrades].sort(() => 0.5 - Math.random());
+            let choices = shuffled.slice(0, 3);
+
+            const container = document.getElementById('upgrade-choices');
+            container.innerHTML = '';
+
+            choices.forEach(upg => {
+                const btn = document.createElement('button');
+                btn.className = `p-5 rounded-2xl bg-white border-2 border-slate-100 hover:border-purple-300 shadow-md hover:shadow-xl transition-all transform hover:-translate-y-1 text-left flex flex-col justify-between group cursor-pointer`;
+                btn.innerHTML = `
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br ${upg.color} text-white flex items-center justify-center text-xl mb-3 shadow-md group-hover:scale-110 transition-transform">
+                            <i class="fa-solid ${upg.icon}"></i>
+                        </div>
+                        <h3 class="font-fun text-xl text-slate-800 mb-1">${upg.title}</h3>
+                        <p class="text-xs text-slate-600 mb-4">${upg.desc}</p>
+                    </div>
+                    <span class="text-xs font-bold text-purple-600 flex items-center">
+                        Choose Blessing <i class="fa-solid fa-arrow-right ml-1 group-hover:translate-x-1 transition-transform"></i>
+                    </span>
+                `;
+                btn.onclick = () => selectUpgrade(upg);
+                container.appendChild(btn);
+            });
+
+            document.getElementById('upgrade-modal').classList.remove('hidden');
+        }
+
+        function selectUpgrade(upgrade) {
+            upgrade.apply();
+            document.getElementById('upgrade-modal').classList.add('hidden');
+            gameState = 'PLAYING';
+            startSpawner();
+            updateUI();
+        }
+
+        function mainLoop() {
+            if(gameState === 'PLAYING') {
+                for(let i = entities.length - 1; i >= 0; i--) {
+                    let e = entities[i];
+                    e.age++;
+
+                    if(e.typeObj.pattern === 'straight') {
+                        e.x += e.vx + Math.sin(e.age * e.wobbleSpeed) * 1.5;
+                        e.y += e.vy;
+                    } else if(e.typeObj.pattern === 'darting') {
+                        e.x += e.vx + Math.cos(e.age * 0.1) * 2.5;
+                        e.y += e.vy;
+                    } else if(e.typeObj.pattern === 'circling') {
+                        e.x += e.vx + Math.sin(e.age * 0.08) * 3.0;
+                        e.y += e.vy;
+                    }
+
+                    if(e.x < 35 || e.x > window.innerWidth - 35) {
+                        e.vx *= -1;
+                    }
+
+                    if(e.element) {
+                        e.element.style.left = `${e.x}px`;
+                        e.element.style.top = `${e.y}px`;
+                    }
+
+                    if(e.y < -60 || e.age > e.maxAge) {
+                        if(e.element) e.element.remove();
+                        entities.splice(i, 1);
+                        
+                        if(e.typeObj.type === 'butterfly') {
+                            lossLife();
+                        }
+                    }
+                }
+            }
+
+            if(gameState !== 'GAMEOVER') {
+                requestAnimationFrame(mainLoop);
+            }
+        }
+
+        function lossLife() {
+            lives--;
+            comboMultiplier = 1.0;
+            updateUI();
+
+            if(lives <= 0) {
+                triggerGameOver();
+            }
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            if(spawnTimer) clearInterval(spawnTimer);
+
+            entities.forEach(e => {
+                if(e.element) e.element.remove();
+            });
+            entities = [];
+
+            if(score > highscore) {
+                highscore = score;
+                localStorage.setItem('meadow_highscore', highscore);
+                document.getElementById('highscore-val').innerText = highscore;
+            }
+
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-caught').innerText = totalCaught;
+
+            const resumeBtn = document.getElementById('resume-checkpoint-btn');
+            if(checkpointData.active) {
+                resumeBtn.classList.remove('hidden');
+            } else {
+                resumeBtn.classList.add('hidden');
+            }
+
+            document.getElementById('gameover-modal').classList.remove('hidden');
+        }
+
+        function togglePause() {
+            if(gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                document.getElementById('pause-modal').classList.remove('hidden');
+            } else if(gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                document.getElementById('pause-modal').classList.add('hidden');
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Space') {
+                if(gameState === 'PLAYING' || gameState === 'PAUSED') {
+                    togglePause();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
